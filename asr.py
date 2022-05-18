@@ -1,5 +1,5 @@
-from signal import signal
-import librosa, librosa.display
+import librosa
+import librosa.display
 import numpy as np
 import soundfile as sf
 import noisereduce as nr
