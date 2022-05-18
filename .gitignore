@@ -19,7 +19,7 @@ lib64/
 parts/
 sdist/
 training/
-other_resources/
+other sources/
 var/
 wheels/
 pip-wheel-metadata/
