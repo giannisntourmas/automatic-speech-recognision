@@ -10,21 +10,11 @@ warnings.filterwarnings("ignore")
 
 def pre_processing(signal_data):
     # Remove the background noise from the audio file.
-    signal_reduced_noise = remove_noise(signal_data)
-
+    signal_reduced_noise = nr.reduce_noise(signal_data, sr=16000)
     # Remove the silent parts of the audio that are less than 40dB
     signal_filtered, _ = librosa.effects.trim(signal_reduced_noise, top_db=40)
-
-    signal_zcr = librosa.feature.zero_crossing_rate(signal_filtered)
-    zcr_average = np.mean(signal_zcr)
-
     sf.write("filtered.wav", signal_filtered, 16000)
-
     return signal_filtered
-
-
-def remove_noise(signal_data):
-    return nr.reduce_noise(signal_data, sr=16000)
 
 
 def digits_segmetation(signal_nparray):
@@ -67,15 +57,15 @@ def digits_segmetation(signal_nparray):
     return samples1
 
 
-def valid_digits(signal_data, samples):
+def valid_digits(signal_data, samples1):
     count_digits = 0
     digit = {}
 
-    for i in range(0, len(samples), 2):
-        if len(samples) % 2 == 1 and i == len(samples) - 1:
-            digit[count_digits] = signal_data[samples[i - 1]:samples[i]]
+    for i in range(0, len(samples1), 2):
+        if len(samples1) % 2 == 1 and i == len(samples1) - 1:
+            digit[count_digits] = signal_data[samples1[i - 1]:samples1[i]]
         else:
-            digit[count_digits] = signal_data[samples[i]:samples[i + 1]]
+            digit[count_digits] = signal_data[samples1[i]:samples1[i + 1]]
         count_digits += 1
 
     return digit
@@ -95,7 +85,7 @@ def get_training_samples_signal():
 
 def filter_dataset_signal(signal_data):
     # Remove the background noise from the audio file.
-    signal_reduced_noise = remove_noise(signal_data)
+    signal_reduced_noise = nr.reduce_noise(signal_data, sr=16000)
 
     # Remove the silent parts of the audio that are less than 40dB
     signal_filtered, _ = librosa.effects.trim(signal_reduced_noise, top_db=40)
@@ -131,13 +121,14 @@ def recognition(digits, signal_data, dataset):
 
         # index of MINIMUM COST
         index_min_cost = cost_matrix_new.index(min(cost_matrix_new))
+        print(index_min_cost)
         recognized_digits_array.append(["s1", "s2", "s3"][index_min_cost])
         j += 1
 
     return recognized_digits_array
 
 
-file_path = "./training/0_s1.wav"
+file_path = "./training/5_s1.wav"
 signal1, sr = librosa.load(file_path, sr=16000)
 print(f"Original audio duration: {librosa.core.get_duration(signal1)}")
 

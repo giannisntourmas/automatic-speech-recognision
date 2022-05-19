@@ -79,6 +79,7 @@ target/
 # Jupyter Notebook
 .ipynb_checkpoints
 
+
 # IPython
 profile_default/
 ipython_config.py
@@ -129,3 +130,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+filtered.wav
+sample-1.wav
+sample-2.wav
