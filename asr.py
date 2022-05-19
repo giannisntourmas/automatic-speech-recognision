@@ -1,3 +1,5 @@
+from pydub import AudioSegment
+from pydub.silence import split_on_silence
 import librosa
 import librosa.display
 import numpy as np
@@ -8,79 +10,13 @@ import warnings
 warnings.filterwarnings("ignore")
 
 
-def pre_processing(signal_data):
+def pre_processing(signal_data, name):
     # Remove the background noise from the audio file.
     signal_reduced_noise = nr.reduce_noise(signal_data, sr=16000)
     # Remove the silent parts of the audio that are less than 40dB
     signal_filtered, _ = librosa.effects.trim(signal_reduced_noise, top_db=40)
-    sf.write("filtered.wav", signal_filtered, 16000)
+    sf.write("filtered_{}.wav".format(name), signal_filtered, 16000)
     return signal_filtered
-
-
-def digits_segmetation(signal_nparray):
-    # We reverse the signal nparray.
-    signal_reverse = signal_nparray[::-1]
-
-    frames = librosa.onset.onset_detect(y=signal_nparray, sr=16000)
-    times = librosa.frames_to_time(frames, sr=16000)
-    samples1 = librosa.frames_to_samples(frames)
-
-    frames_reverse = librosa.onset.onset_detect(y=signal_reverse, sr=16000)
-    times_reverse = librosa.frames_to_time(frames_reverse, sr=16000)
-    for i in range(0, len(times_reverse) - 1):
-        times_reverse[i] = 0.03 - times_reverse[i]
-        i += 1
-
-    times_reverse = sorted(times_reverse)
-
-    i = 0
-    while i < len(times_reverse) - 1:
-        if times_reverse[i + 1] - times_reverse[i] < 1:
-            times_reverse = np.delete(times_reverse, i)
-            i -= 1
-        i += 1
-
-    i = 0
-    while i < len(times) - 1:
-        if times[i + 1] - times[i] < 1:
-            times = np.delete(times, i + 1)
-            frames = np.delete(frames, i + 1)
-            samples1 = np.delete(samples1, i + 1)
-            i = i - 1
-        i = i + 1
-
-    merged_times = [*times, *times_reverse]
-    merged_times = sorted(merged_times)
-
-    samples1 = librosa.time_to_samples(merged_times, sr=16000)
-
-    return samples1
-
-
-def valid_digits(signal_data, samples1):
-    count_digits = 0
-    digit = {}
-
-    for i in range(0, len(samples1), 2):
-        if len(samples1) % 2 == 1 and i == len(samples1) - 1:
-            digit[count_digits] = signal_data[samples1[i - 1]:samples1[i]]
-        else:
-            digit[count_digits] = signal_data[samples1[i]:samples1[i + 1]]
-        count_digits += 1
-
-    return digit
-
-
-def get_training_samples_signal():
-    training_samples_signals = {}
-    index = 0
-
-    for i in range(10):
-        for name in ["s1", "s2", "s3"]:
-            training_samples_signals[index], _ = librosa.load("./training/" + str(i) + "_" + name + ".wav", sr=16000)
-            index += 1
-    
-    return training_samples_signals
 
 
 def filter_dataset_signal(signal_data):
@@ -93,84 +29,78 @@ def filter_dataset_signal(signal_data):
     return signal_filtered
 
 
-def recognition(digits, signal_data, dataset):
-    recognized_digits_array = []
-    j = 0
-    while j < len(digits):
-        mfcc_digit = librosa.feature.mfcc(y=digits[j], sr=16000, hop_length=480, n_mfcc=13)
-        mfcc_digit_mag = librosa.amplitude_to_db(abs(mfcc_digit))
+def get_training_samples_signal():
+    training_samples_signals = {}
+    index = 0
+    for i in range(10):
+        for name in ["s1", "s2", "s3"]:
+            training_samples_signals[index], _ = librosa.load("./training/" + str(i) + "_" + name + ".wav", sr=16000)
+            index += 1
 
-        cost_matrix_new = []
-        mfccs = []
-        # 0-9 from training set
-        for i in range(len(dataset)):
-            # We basically filter the training dataset as well.
-            dataset[i] = filter_dataset_signal(dataset[i].astype(float))
-
-            # MFCC for each digit from the training set
-            mfcc = librosa.feature.mfcc(y=dataset[i], sr=16000, hop_length=80, n_mfcc=13)
-            # logarithm of the features ADDED
-            mfcc_mag = librosa.amplitude_to_db(abs(mfcc))
-
-            # apply dtw
-            cost_matrix, wp = librosa.sequence.dtw(X=mfcc_digit_mag, Y=mfcc_mag)
-
-            # make a list with minimum cost of each digit
-            cost_matrix_new.append(cost_matrix[-1, -1])
-            mfccs.append(mfcc_mag)
-
-        # index of MINIMUM COST
-        index_min_cost = cost_matrix_new.index(min(cost_matrix_new))
-        print(index_min_cost)
-        recognized_digits_array.append(["s1", "s2", "s3"][index_min_cost])
-        j += 1
-
-    return recognized_digits_array
+    return training_samples_signals
 
 
-file_path = "./training/5_s1.wav"
-signal1, sr = librosa.load(file_path, sr=16000)
-print(f"Original audio duration: {librosa.core.get_duration(signal1)}")
+def recognition(train_data, digit):
+    mfcc_digit = librosa.feature.mfcc(y=digit, sr=16000, hop_length=480, n_mfcc=13)
+    mfcc_digit_mag = librosa.amplitude_to_db(abs(mfcc_digit))
+    cost_matrix_new = []
+    mfccs = []
+    for index, value in enumerate(train_data):
+        train_data[index] = filter_dataset_signal(train_data[index])
+        # MFCC for each digit from the training set
+        mfcc = librosa.feature.mfcc(y=train_data[index], sr=16000, hop_length=80, n_mfcc=13)
+        # logarithm of the features ADDED
+        mfcc_mag = librosa.amplitude_to_db(abs(mfcc))
+        # apply dtw
+        cost_matrix, wp = librosa.sequence.dtw(X=mfcc_digit_mag, Y=mfcc_mag)
+        # MFCC for each digit from the training set
+        mfcc = librosa.feature.mfcc(y=train_data[index], sr=16000, hop_length=80, n_mfcc=13)
+        # logarithm of the features ADDED
+        mfcc_mag = librosa.amplitude_to_db(abs(mfcc))
 
-pre_proceed_signal = pre_processing(signal1)
-print(f'New signal sound duration after filtering: {librosa.core.get_duration(pre_proceed_signal)}')
+        # make a list with minimum cost of each digit
+        cost_matrix_new.append(cost_matrix[-1, -1])
+        mfccs.append(mfcc_mag)
+    # index of MINIMUM COST
+    index_min_cost = cost_matrix_new.index(min(cost_matrix_new))
 
-samples = digits_segmetation(pre_proceed_signal)
-# print(f"samples = {samples}")
+    recognized_digit = tags[index_min_cost]
 
-digits_array = valid_digits(pre_proceed_signal, samples)
-# print(f"digits_array = {digits_array}")
+    return recognized_digit
 
-dataset_training_signals = get_training_samples_signal()
-# print(f"dataset_training_signals = {dataset_training_signals}")
 
-recognized_digits = recognition(digits=digits_array, signal_data=pre_proceed_signal, dataset=dataset_training_signals)
+tags = []
+for i in range(10):
+    for j in range(1, 4, 1):
+        tags.append("{}_s{}.wav".format(i, j))
 
-print("Digits Recognized: ", end="")
-for y in digits_array:
-    print(y)
+# input the .wav file
+sound_file = AudioSegment.from_wav("sample-1.wav")
+real = [3, 5, 7, 9, 0, 2, 4, 6, 8, 1]
+cnt = 0
+# split words on silence
+# must be silent for at least half a second
+# consider it silent if quieter than -30 dBFS
+audio_chunks = split_on_silence(sound_file, min_silence_len=300, silence_thresh=-40)
 
-plt.subplot(2, 2, 1)
-plt.title("Original Waveform")
-librosa.display.waveshow(signal1, sr)
+test_data = []
+# make new .wav file for each word in audio file
+for i, chunk in enumerate(audio_chunks):
+    out_file = "./splitAudio/chunk{0}.wav".format(i)
+    # print("exporting", out_file)
+    chunk.export(out_file, format="wav")
+    file, sr = librosa.load(out_file, sr=16000)
+    # print(f"Original audio duration: {librosa.core.get_duration(file)}")
+    file = pre_processing(file, i)
+    # print(f'New signal sound duration after filtering: {librosa.core.get_duration(file)}')
+    training_data = get_training_samples_signal()
+    # print(training_data)
+    recognize_digits = recognition(training_data, file)
+    if real[i] == int(recognize_digits[0]):
+        cnt += 1
+    print(f"Prediction = {recognize_digits[0]} Real = {real[i]}")
 
-plt.subplot(2, 2, 2)
-plt.title("Filtered Waveform")
-librosa.display.waveshow(pre_proceed_signal, sr)
 
-y = librosa.stft(signal1)
-y_to_db = librosa.amplitude_to_db(abs(y))
-plt.subplot(2, 2, 3)
-plt.title('Original Spectrograph')
-librosa.display.specshow(y_to_db, x_axis='time', y_axis='hz')
-plt.colorbar(format="%2.f dB")
+print(f"Accuracy: {cnt / len(real) * 100} %")
 
-y2 = librosa.stft(pre_proceed_signal)
-y2_to_db = librosa.amplitude_to_db(abs(y2))
-plt.subplot(2, 2, 4)
-plt.title('Filtered Spectrograph')
-librosa.display.specshow(y2_to_db, x_axis='time', y_axis='hz')
-plt.colorbar(format="%2.f dB")
-plt.tight_layout()
 
-plt.show()
