@@ -116,5 +116,14 @@ print(f"Accuracy: {cnt / len(real) * 100} %")
 # plt.title('Original Spectrograph')
 # librosa.display.specshow(y_to_db, x_axis='time', y_axis='hz')
 # plt.colorbar(format="%2.f dB")
+# y2 = librosa.stft(pre_proceed_signal)
+# y2_to_db = librosa.amplitude_to_db(abs(y2))
+# plt.subplot(2, 2, 4)
+# plt.title('Filtered Spectrograph')
+# librosa.display.specshow(y2_to_db, x_axis='time', y_axis='hz')
+# plt.colorbar(format="%2.f dB")
+# plt.tight_layout()
+#
+# plt.show()
 
 
