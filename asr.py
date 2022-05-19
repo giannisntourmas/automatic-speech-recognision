@@ -102,5 +102,19 @@ for i, chunk in enumerate(audio_chunks):
 
 
 print(f"Accuracy: {cnt / len(real) * 100} %")
+# plt.subplot(2, 2, 1)
+# plt.title("Original Waveform")
+# librosa.display.waveshow(signal1, sr)
+#
+# plt.subplot(2, 2, 2)
+# plt.title("Filtered Waveform")
+# librosa.display.waveshow(pre_proceed_signal, sr)
+#
+# y = librosa.stft(signal1)
+# y_to_db = librosa.amplitude_to_db(abs(y))
+# plt.subplot(2, 2, 3)
+# plt.title('Original Spectrograph')
+# librosa.display.specshow(y_to_db, x_axis='time', y_axis='hz')
+# plt.colorbar(format="%2.f dB")
 
 
