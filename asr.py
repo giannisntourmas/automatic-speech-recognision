@@ -69,14 +69,43 @@ def recognition(train_data, digit):
     return recognized_digit
 
 
+def plots(original, filtered):
+    plt.figure(figsize=(12, 8))
+    plt.subplot(2, 2, 1)
+    plt.title("Original Waveform")
+    librosa.display.waveshow(original, sr)
+
+    plt.subplot(2, 2, 2)
+    plt.title("Filtered Waveform")
+    librosa.display.waveshow(filtered, sr)
+
+    y = librosa.stft(original)
+    y_to_db = librosa.amplitude_to_db(abs(y))
+    plt.subplot(2, 2, 3)
+    plt.title('Original Spectrograph')
+    librosa.display.specshow(y_to_db, x_axis='time', y_axis='hz')
+    plt.colorbar(format="%2.f dB")
+
+    y2 = librosa.stft(filtered)
+    y2_to_db = librosa.amplitude_to_db(abs(y2))
+    plt.subplot(2, 2, 4)
+    plt.title('Filtered Spectrograph')
+    librosa.display.specshow(y2_to_db, x_axis='time', y_axis='hz')
+    plt.colorbar(format="%2.f dB")
+    plt.tight_layout()
+
+    plt.show()
+
+
 tags = []
 for i in range(10):
     for j in range(1, 4, 1):
         tags.append("{}_s{}.wav".format(i, j))
 
 # input the .wav file
-sound_file = AudioSegment.from_wav("sample-1.wav")
-real = [3, 5, 7, 9, 0, 2, 4, 6, 8, 1]
+sound_file = AudioSegment.from_wav("sample-2.wav")
+# real = [3, 5, 7, 9, 0, 2, 4, 6, 8, 1] # sample 1
+real = [1, 3, 5] # sample 2
 cnt = 0
 # split words on silence
 # must be silent for at least half a second
@@ -91,39 +120,18 @@ for i, chunk in enumerate(audio_chunks):
     chunk.export(out_file, format="wav")
     file, sr = librosa.load(out_file, sr=16000)
     # print(f"Original audio duration: {librosa.core.get_duration(file)}")
-    file = pre_processing(file, i)
+    file_filtered = pre_processing(file, i)
     # print(f'New signal sound duration after filtering: {librosa.core.get_duration(file)}')
     training_data = get_training_samples_signal()
     # print(training_data)
-    recognize_digits = recognition(training_data, file)
+    recognize_digits = recognition(training_data, file_filtered)
+    plots(file, file_filtered)
+
     if real[i] == int(recognize_digits[0]):
         cnt += 1
     print(f"Prediction = {recognize_digits[0]} Real = {real[i]}")
 
-
 print(f"Accuracy: {cnt / len(real) * 100} %")
-# plt.subplot(2, 2, 1)
-# plt.title("Original Waveform")
-# librosa.display.waveshow(signal1, sr)
-#
-# plt.subplot(2, 2, 2)
-# plt.title("Filtered Waveform")
-# librosa.display.waveshow(pre_proceed_signal, sr)
-#
-# y = librosa.stft(signal1)
-# y_to_db = librosa.amplitude_to_db(abs(y))
-# plt.subplot(2, 2, 3)
-# plt.title('Original Spectrograph')
-# librosa.display.specshow(y_to_db, x_axis='time', y_axis='hz')
-# plt.colorbar(format="%2.f dB")
-# y2 = librosa.stft(pre_proceed_signal)
-# y2_to_db = librosa.amplitude_to_db(abs(y2))
-# plt.subplot(2, 2, 4)
-# plt.title('Filtered Spectrograph')
-# librosa.display.specshow(y2_to_db, x_axis='time', y_axis='hz')
-# plt.colorbar(format="%2.f dB")
-# plt.tight_layout()
-#
-# plt.show()
+
 
 
