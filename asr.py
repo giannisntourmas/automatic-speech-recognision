@@ -9,8 +9,6 @@ import matplotlib.pyplot as plt
 import warnings
 warnings.filterwarnings("ignore")
 
-sample_rate = 8000
-
 
 def pre_processing(signal_data, name):
     # Remove the background noise from the audio file.
@@ -26,7 +24,6 @@ def filter_dataset_signal(signal_data):
     signal_reduced_noise = nr.reduce_noise(signal_data, sr=sample_rate)
     # Remove the silent parts of the audio that are less than 40dB
     signal_filtered, _ = librosa.effects.trim(signal_reduced_noise, top_db=40)
-
     return signal_filtered
 
 
@@ -64,10 +61,7 @@ def recognition(train_data, digit):
         mfccs.append(mfcc_mag)
     # index of MINIMUM COST
     index_min_cost = cost_matrix_new.index(min(cost_matrix_new))
-
-    recognized_digit = tags[index_min_cost]
-
-    return recognized_digit
+    return tags[index_min_cost]
 
 
 def create_plots(original, filtered, n):
@@ -101,6 +95,7 @@ for i in range(10):
     for j in range(1, 4, 1):
         tags.append("{}_s{}.wav".format(i, j))
 
+sample_rate = 8000
 # input the .wav file
 sound_file = AudioSegment.from_wav("sample-2.wav")
 # real = [3, 5, 7, 9, 0, 2, 4, 6, 8, 1] # sample 1
@@ -109,10 +104,9 @@ cnt = 0
 # split words on silence
 # must be silent for at least half a second
 # consider it silent if quieter than -30 dBFS
+# make new .wav file for each word in audio file
 audio_chunks = split_on_silence(sound_file, min_silence_len=300, silence_thresh=-40)
 
-test_data = []
-# make new .wav file for each word in audio file
 for i, chunk in enumerate(audio_chunks):
     out_file = "./splitAudio/word_{0}.wav".format(i)
     # print("exporting", out_file)
