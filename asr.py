@@ -9,20 +9,21 @@ import matplotlib.pyplot as plt
 import warnings
 warnings.filterwarnings("ignore")
 
+sample_rate = 8000
+
 
 def pre_processing(signal_data, name):
     # Remove the background noise from the audio file.
-    signal_reduced_noise = nr.reduce_noise(signal_data, sr=16000)
+    signal_reduced_noise = nr.reduce_noise(signal_data, sr=sample_rate)
     # Remove the silent parts of the audio that are less than 40dB
     signal_filtered, _ = librosa.effects.trim(signal_reduced_noise, top_db=40)
-    sf.write("filtered_{}.wav".format(name), signal_filtered, 16000)
+    sf.write("filtered_{}.wav".format(name), signal_filtered, sample_rate)
     return signal_filtered
 
 
 def filter_dataset_signal(signal_data):
     # Remove the background noise from the audio file.
-    signal_reduced_noise = nr.reduce_noise(signal_data, sr=16000)
-
+    signal_reduced_noise = nr.reduce_noise(signal_data, sr=sample_rate)
     # Remove the silent parts of the audio that are less than 40dB
     signal_filtered, _ = librosa.effects.trim(signal_reduced_noise, top_db=40)
 
@@ -34,27 +35,27 @@ def get_training_samples_signal():
     index = 0
     for i in range(10):
         for name in ["s1", "s2", "s3"]:
-            training_samples_signals[index], _ = librosa.load("./training/" + str(i) + "_" + name + ".wav", sr=16000)
+            training_samples_signals[index], _ = librosa.load("./training/" + str(i) + "_" + name + ".wav", sr=sample_rate)
             index += 1
 
     return training_samples_signals
 
 
 def recognition(train_data, digit):
-    mfcc_digit = librosa.feature.mfcc(y=digit, sr=16000, hop_length=480, n_mfcc=13)
+    mfcc_digit = librosa.feature.mfcc(y=digit, sr=sample_rate, hop_length=480, n_mfcc=13)
     mfcc_digit_mag = librosa.amplitude_to_db(abs(mfcc_digit))
     cost_matrix_new = []
     mfccs = []
     for index, value in enumerate(train_data):
         train_data[index] = filter_dataset_signal(train_data[index])
         # MFCC for each digit from the training set
-        mfcc = librosa.feature.mfcc(y=train_data[index], sr=16000, hop_length=80, n_mfcc=13)
+        mfcc = librosa.feature.mfcc(y=train_data[index], sr=sample_rate, hop_length=80, n_mfcc=13)
         # logarithm of the features ADDED
         mfcc_mag = librosa.amplitude_to_db(abs(mfcc))
         # apply dtw
         cost_matrix, wp = librosa.sequence.dtw(X=mfcc_digit_mag, Y=mfcc_mag)
         # MFCC for each digit from the training set
-        mfcc = librosa.feature.mfcc(y=train_data[index], sr=16000, hop_length=80, n_mfcc=13)
+        mfcc = librosa.feature.mfcc(y=train_data[index], sr=sample_rate, hop_length=80, n_mfcc=13)
         # logarithm of the features ADDED
         mfcc_mag = librosa.amplitude_to_db(abs(mfcc))
 
@@ -69,8 +70,8 @@ def recognition(train_data, digit):
     return recognized_digit
 
 
-def plots(original, filtered):
-    plt.figure(figsize=(12, 8))
+def create_plots(original, filtered, n):
+    plt.figure(figsize=(12, 8), num=n)
     plt.subplot(2, 2, 1)
     plt.title("Original Waveform")
     librosa.display.waveshow(original, sr)
@@ -94,8 +95,6 @@ def plots(original, filtered):
     plt.colorbar(format="%2.f dB")
     plt.tight_layout()
 
-    plt.show()
-
 
 tags = []
 for i in range(10):
@@ -115,23 +114,26 @@ audio_chunks = split_on_silence(sound_file, min_silence_len=300, silence_thresh=
 test_data = []
 # make new .wav file for each word in audio file
 for i, chunk in enumerate(audio_chunks):
-    out_file = "./splitAudio/chunk{0}.wav".format(i)
+    out_file = "./splitAudio/word_{0}.wav".format(i)
     # print("exporting", out_file)
     chunk.export(out_file, format="wav")
-    file, sr = librosa.load(out_file, sr=16000)
+    file, sr = librosa.load(out_file, sr=sample_rate)
     # print(f"Original audio duration: {librosa.core.get_duration(file)}")
     file_filtered = pre_processing(file, i)
     # print(f'New signal sound duration after filtering: {librosa.core.get_duration(file)}')
     training_data = get_training_samples_signal()
     # print(training_data)
     recognize_digits = recognition(training_data, file_filtered)
-    plots(file, file_filtered)
+    create_plots(file, file_filtered, i + 1)
 
     if real[i] == int(recognize_digits[0]):
         cnt += 1
     print(f"Prediction = {recognize_digits[0]} Real = {real[i]}")
 
 print(f"Accuracy: {cnt / len(real) * 100} %")
+
+plt.show()
+
 
 
 
