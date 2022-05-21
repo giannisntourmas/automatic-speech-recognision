@@ -106,7 +106,7 @@ cnt = 0
 # consider it silent if quieter than -30 dBFS
 # make new .wav file for each word in audio file
 audio_chunks = split_on_silence(sound_file, min_silence_len=300, silence_thresh=-40)
-
+asr = []
 for i, chunk in enumerate(audio_chunks):
     out_file = "./splitAudio/word_{0}.wav".format(i)
     # print("exporting", out_file)
@@ -118,12 +118,14 @@ for i, chunk in enumerate(audio_chunks):
     training_data = get_training_samples_signal()
     # print(training_data)
     recognize_digits = recognition(training_data, file_filtered)
+    asr.append(int(recognize_digits[0]))
     create_plots(file, file_filtered, i + 1)
 
     if real[i] == int(recognize_digits[0]):
         cnt += 1
-    print(f"Prediction = {recognize_digits[0]} Real = {real[i]}")
+    # print(f"Prediction = {recognize_digits[0]} Real = {real[i]}")
 
+print(f"Real: {real}\nASR:  {asr}")
 print(f"Accuracy: {cnt / len(real) * 100} %")
 
 plt.show()
