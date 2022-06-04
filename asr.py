@@ -2,11 +2,12 @@ from pydub import AudioSegment
 from pydub.silence import split_on_silence
 import librosa
 import librosa.display
-import numpy as np
 import soundfile as sf
 import noisereduce as nr
 import matplotlib.pyplot as plt
 import warnings
+import glob
+import os
 warnings.filterwarnings("ignore")
 
 
@@ -50,12 +51,11 @@ def recognition(train_data, digit):
         # logarithm of the features ADDED
         mfcc_mag = librosa.amplitude_to_db(abs(mfcc))
         # apply dtw
-        cost_matrix, wp = librosa.sequence.dtw(X=mfcc_digit_mag, Y=mfcc_mag)
+        cost_matrix, _ = librosa.sequence.dtw(X=mfcc_digit_mag, Y=mfcc_mag)
         # MFCC for each digit from the training set
         mfcc = librosa.feature.mfcc(y=train_data[index], sr=sample_rate, hop_length=80, n_mfcc=13)
         # logarithm of the features ADDED
         mfcc_mag = librosa.amplitude_to_db(abs(mfcc))
-
         # make a list with minimum cost of each digit
         cost_matrix_new.append(cost_matrix[-1, -1])
         mfccs.append(mfcc_mag)
@@ -97,38 +97,42 @@ for i in range(10):
 
 sample_rate = 8000
 # input the .wav file
-sound_file = AudioSegment.from_wav("sample-2.wav")
+file = input("Write the name of your file (be sure that your file is in the same folder with the .py file): \n")
+real = file.split("-")[1].split('.')[0].split(",")
+real = [int(s) for s in real]
+sound_file = AudioSegment.from_wav(file)
 # real = [3, 5, 7, 9, 0, 2, 4, 6, 8, 1] # sample 1
-real = [1, 3, 5] # sample 2
+# real = [1, 3, 5] # sample 2
+# real = [5, 4, 9, 0, 8, 1] # sample 3
 cnt = 0
 # split words on silence
-# must be silent for at least half a second
-# consider it silent if quieter than -30 dBFS
-# make new .wav file for each word in audio file
 audio_chunks = split_on_silence(sound_file, min_silence_len=300, silence_thresh=-40)
 asr = []
 for i, chunk in enumerate(audio_chunks):
-    out_file = "./splitAudio/word_{0}.wav".format(i)
+    out_file = "word_{0}.wav".format(i)
     # print("exporting", out_file)
     chunk.export(out_file, format="wav")
     file, sr = librosa.load(out_file, sr=sample_rate)
-    # print(f"Original audio duration: {librosa.core.get_duration(file)}")
     file_filtered = pre_processing(file, i)
-    # print(f'New signal sound duration after filtering: {librosa.core.get_duration(file)}')
     training_data = get_training_samples_signal()
-    # print(training_data)
     recognize_digits = recognition(training_data, file_filtered)
     asr.append(int(recognize_digits[0]))
     create_plots(file, file_filtered, i + 1)
-
-    if real[i] == int(recognize_digits[0]):
+    if int(real[i]) == int(recognize_digits[0]):
         cnt += 1
     # print(f"Prediction = {recognize_digits[0]} Real = {real[i]}")
 
 print(f"Real: {real}\nASR:  {asr}")
-print(f"Accuracy: {cnt / len(real) * 100} %")
+print(f"Accuracy: {round(cnt / len(real) * 100, 2)} %")
 
-plt.show()
+# plt.show()
+
+# delete files
+for f in glob.glob("filtered*.wav"):
+    os.remove(f)
+
+for f in glob.glob("word*.wav"):
+    os.remove(f)
 
 
 
