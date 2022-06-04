@@ -101,9 +101,7 @@ file = input("Write the name of your file (be sure that your file is in the same
 real = file.split("-")[1].split('.')[0].split(",")
 real = [int(s) for s in real]
 sound_file = AudioSegment.from_wav(file)
-# real = [3, 5, 7, 9, 0, 2, 4, 6, 8, 1] # sample 1
-# real = [1, 3, 5] # sample 2
-# real = [5, 4, 9, 0, 8, 1] # sample 3
+
 cnt = 0
 # split words on silence
 audio_chunks = split_on_silence(sound_file, min_silence_len=300, silence_thresh=-40)
