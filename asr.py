@@ -32,7 +32,7 @@ def get_training_samples_signal():
     training_samples_signals = {}
     index = 0
     for i in range(10):
-        for name in ["s1", "s2", "s3"]:
+        for name in ["s1", "s2"]:
             training_samples_signals[index], _ = librosa.load("./training/" + str(i) + "_" + name + ".wav", sr=sample_rate)
             index += 1
 
@@ -116,6 +116,10 @@ for i, chunk in enumerate(audio_chunks):
     recognize_digits = recognition(training_data, file_filtered)
     asr.append(int(recognize_digits[0]))
     create_plots(file, file_filtered, i + 1)
+    for f in glob.glob("filtered*.wav"):
+        os.remove(f)
+    for f in glob.glob("word*.wav"):
+        os.remove(f)
     if int(real[i]) == int(recognize_digits[0]):
         cnt += 1
     # print(f"Prediction = {recognize_digits[0]} Real = {real[i]}")
@@ -123,14 +127,12 @@ for i, chunk in enumerate(audio_chunks):
 print(f"Real: {real}\nASR:  {asr}")
 print(f"Accuracy: {round(cnt / len(real) * 100, 2)} %")
 
-# plt.show()
+plt.show()
 
 # delete files
-for f in glob.glob("filtered*.wav"):
-    os.remove(f)
 
-for f in glob.glob("word*.wav"):
-    os.remove(f)
+
+
 
 
 
